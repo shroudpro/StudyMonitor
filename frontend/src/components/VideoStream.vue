@@ -33,11 +33,15 @@ const emit = defineEmits<{
 
       <!-- 无视频帧时显示占位 -->
       <div v-else class="video-placeholder">
-        <span class="video-placeholder-icon">⎚</span>
-        <span class="data-readout">等待摄像头连接...</span>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="video-placeholder-icon">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+        </svg>
+        <span class="text-sm text-secondary font-medium">等待摄像头连接...</span>
         <button
           class="btn btn-primary"
           @click="emit('startCamera')"
+          style="margin-top: var(--space-4);"
         >
           启动检测
         </button>
@@ -45,11 +49,66 @@ const emit = defineEmits<{
 
       <!-- 视频底部覆盖层 -->
       <div v-if="frame" class="video-overlay">
-        <span class="data-readout">
-          <span class="value">640×480</span>
-          <span class="unit"> @ 15fps</span>
+        <span class="text-sm text-neutral-100 font-medium tracking-wider">
+          <span>640×480</span>
+          <span class="text-xs text-neutral-300 ml-1"> @ 15fps</span>
         </span>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.video-container {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-neutral-900);
+  border: 1px solid var(--color-neutral-200);
+  aspect-ratio: 16 / 10;
+}
+
+.video-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.video-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: var(--space-3) var(--space-4);
+  background: linear-gradient(transparent, rgba(17, 24, 39, 0.9));
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.video-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 300px;
+  gap: var(--space-2);
+  color: var(--color-neutral-500);
+}
+
+.video-placeholder-icon {
+  width: 48px;
+  height: 48px;
+  opacity: 0.5;
+  margin-bottom: var(--space-2);
+}
+
+.font-medium { font-weight: 500; }
+.tracking-wider { letter-spacing: 0.05em; }
+.ml-1 { margin-left: var(--space-1); }
+.text-neutral-100 { color: var(--color-neutral-100); }
+.text-neutral-300 { color: var(--color-neutral-300); }
+</style>

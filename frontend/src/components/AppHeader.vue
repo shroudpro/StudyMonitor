@@ -32,10 +32,12 @@ onUnmounted(() => {
   <header class="app-header">
     <div class="header-left">
       <div class="logo">
-        <span class="logo-icon">◈</span>
-        <span class="logo-text">StudyLens</span>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="logo-icon">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+        </svg>
+        <span class="logo-text">StudyMonitor</span>
       </div>
-      <span class="header-subtitle">学习行为分析系统</span>
+      <span class="header-subtitle">学习行为会话分析</span>
     </div>
 
     <div class="header-right">
@@ -61,8 +63,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: var(--space-3) var(--space-6);
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-surface);
+  border-bottom: 1px solid var(--color-neutral-200);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -82,25 +84,22 @@ onUnmounted(() => {
 }
 
 .logo-icon {
-  font-size: 1.2rem;
-  color: var(--color-accent);
-  text-shadow: 0 0 8px var(--color-accent-glow);
+  width: 20px;
+  height: 20px;
+  color: var(--color-neutral-900);
 }
 
 .logo-text {
-  font-family: var(--font-mono);
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--color-text-primary);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-neutral-900);
 }
 
 .header-subtitle {
-  font-family: var(--font-sans);
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  color: var(--color-neutral-500);
   padding-left: var(--space-4);
-  border-left: 1px solid var(--color-border);
+  border-left: 1px solid var(--color-neutral-200);
 }
 
 .header-right {
@@ -116,22 +115,22 @@ onUnmounted(() => {
 }
 
 .status-dot {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
 }
 
 .status-dot.online {
-  background: var(--color-focus);
-  box-shadow: 0 0 6px var(--color-focus-glow);
-  animation: pulse 2s ease-in-out infinite;
+  background: var(--color-success);
 }
 
 .status-dot.offline {
-  background: var(--color-text-muted);
+  background: var(--color-neutral-400);
 }
 
 .header-time {
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-neutral-900);
 }
 </style>

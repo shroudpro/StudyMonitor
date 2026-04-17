@@ -35,14 +35,12 @@ async function fetchExplanation() {
       {{ explanation.explanation }}
     </div>
 
-    <div v-else class="semantic-placeholder">
-      <p class="data-readout">
+    <div v-else class="semantic-placeholder text-center">
+      <p class="text-sm text-secondary">
         点击下方按钮获取当前状态的 AI 解释
       </p>
-      <p class="data-readout" style="margin-top: var(--space-2);">
-        <span style="color: var(--color-text-muted); font-size: 0.7rem;">
+      <p class="text-xs text-tertiary mt-2">
           // 后续将接入 Qwen2.5-VL-3B
-        </span>
       </p>
     </div>
 
@@ -59,6 +57,15 @@ async function fetchExplanation() {
 <style scoped>
 .semantic-placeholder {
   padding: var(--space-4) 0;
+  text-align: center;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.mt-2 {
+  margin-top: var(--space-2);
 }
 
 .semantic-btn {

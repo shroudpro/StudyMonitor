@@ -126,19 +126,19 @@ onUnmounted(() => {
     <div v-if="stats" class="stats-grid">
       <div class="stat-card">
         <span class="stat-label">总时长</span>
-        <span class="stat-value accent">{{ formatTime(stats.totalDuration) }}</span>
+        <span class="stat-value text-primary">{{ formatTime(stats.totalDuration) }}</span>
       </div>
       <div class="stat-card">
         <span class="stat-label">专注</span>
-        <span class="stat-value focus">{{ formatTime(stats.focusDuration) }}</span>
+        <span class="stat-value text-success">{{ formatTime(stats.focusDuration) }}</span>
       </div>
       <div class="stat-card">
         <span class="stat-label">分心次数</span>
-        <span class="stat-value distracted">{{ stats.distractedCount }}</span>
+        <span class="stat-value text-error">{{ stats.distractedCount }}</span>
       </div>
       <div class="stat-card">
         <span class="stat-label">手机使用</span>
-        <span class="stat-value distracted">{{ formatTime(stats.phoneUsageDuration) }}</span>
+        <span class="stat-value text-error">{{ formatTime(stats.phoneUsageDuration) }}</span>
       </div>
     </div>
 
@@ -146,13 +146,41 @@ onUnmounted(() => {
     <div ref="chartRef" class="chart-container" />
 
     <!-- 无数据状态 -->
-    <div v-if="!stats" class="no-data data-readout">
+    <div v-if="!stats" class="no-data text-secondary">
       等待数据采集...
     </div>
   </div>
 </template>
 
 <style scoped>
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  background: var(--color-neutral-50);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.stat-card:hover {
+  border-color: var(--color-neutral-300);
+}
+
+.stat-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-neutral-500);
+}
+
+.stat-value {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  line-height: 1;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -168,6 +196,5 @@ onUnmounted(() => {
 .no-data {
   text-align: center;
   padding: var(--space-8);
-  color: var(--color-text-muted);
 }
 </style>

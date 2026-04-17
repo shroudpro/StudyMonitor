@@ -104,7 +104,7 @@ onMounted(loadRules)
             <span :class="['tag', rule.enabled ? 'tag-enabled' : 'tag-disabled']">
               {{ rule.enabled ? 'ON' : 'OFF' }}
             </span>
-            <span class="tag" style="border-color: rgba(0, 212, 255, 0.2); color: var(--color-accent);">
+            <span class="tag tag-output">
               → {{ rule.outputState }}
             </span>
           </div>
@@ -139,11 +139,10 @@ onMounted(loadRules)
   gap: var(--space-2);
   margin-bottom: var(--space-4);
   padding-bottom: var(--space-4);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-neutral-200);
 }
 
 .rule-textarea {
-  font-family: var(--font-mono);
   resize: vertical;
   min-height: 60px;
 }
@@ -170,14 +169,14 @@ onMounted(loadRules)
   align-items: center;
   justify-content: space-between;
   padding: var(--space-3);
-  background: var(--color-void);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  background: var(--color-bg-body);
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-md);
   transition: all var(--transition-fast);
 }
 
 .rule-item:hover {
-  border-color: var(--color-border-active);
+  border-color: var(--color-neutral-300);
 }
 
 .rule-item.disabled {
@@ -191,7 +190,8 @@ onMounted(loadRules)
 }
 
 .rule-name {
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
+  font-weight: 600;
 }
 
 .rule-meta {
@@ -207,6 +207,11 @@ onMounted(loadRules)
 .no-rules {
   text-align: center;
   padding: var(--space-6);
-  color: var(--color-text-muted);
+  color: var(--color-neutral-500);
+}
+
+.tag-output {
+  border-color: var(--color-neutral-300);
+  color: var(--color-neutral-900);
 }
 </style>
