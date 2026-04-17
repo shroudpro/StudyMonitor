@@ -30,18 +30,15 @@ CAMERA_HEIGHT = int(os.getenv("CAMERA_HEIGHT", "480"))
 
 
 # ─── YOLO 检测配置 ───
-YOLO_MODEL_PATH = str(MODELS_DIR / "yolov8n.onnx")
+YOLO_MODEL_PATH = str(MODELS_DIR / "yolo11n-pose.onnx")
 YOLO_CONFIDENCE_THRESHOLD = float(os.getenv("YOLO_CONFIDENCE", "0.5"))
 YOLO_NMS_THRESHOLD = float(os.getenv("YOLO_NMS", "0.45"))
 YOLO_INPUT_SIZE = 640
 
 # COCO 数据集中我们关注的目标类别及其 ID
-# NOTE: 只检测与学习场景相关的 4 类目标，其他忽略
+# NOTE: YOLO pose 模型只输出 person 类别（0）
 TARGET_CLASSES = {
     0: "person",
-    63: "laptop",
-    67: "cell phone",
-    73: "book",
 }
 
 

@@ -18,6 +18,10 @@ class DetectionItem(BaseModel):
     className: str
     confidence: float
     bbox: list[float] = Field(description="[x1, y1, x2, y2] 归一化坐标")
+    keypoints: Optional[list[list[float]]] = Field(
+        default=None, 
+        description="[[x, y, conf], ...] 归一化关键点坐标"
+    )
 
 
 class DetectionResult(BaseModel):
@@ -30,14 +34,14 @@ class DetectionResult(BaseModel):
 
 class AbstractedState(BaseModel):
     """
-    状态抽象结果 — 对应概要设计 2.3.2
+    状态抽象结果 — 基于上半身姿态的特征提取
     """
     isPresent: bool = False
-    usingPhone: bool = False
-    usingLaptop: bool = False
-    readingBook: bool = False
+    faceVisible: bool = False
+    headDown: bool = False
+    headTurnedAway: bool = False
+    postureStable: bool = False
     stableDuration: float = 0.0
-
 
 class BehaviorState(BaseModel):
     """当前行为状态（前端展示用）"""

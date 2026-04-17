@@ -6,6 +6,8 @@ NOTE: 这是系统从「视觉检测」走向「行为推理」的桥梁。
 """
 
 import logging
+import math
+from collections import deque
 
 from app.schema.schemas import DetectionItem, AbstractedState
 
@@ -16,12 +18,18 @@ class StateService:
     """
     状态抽象模块
 
-    将目标检测结果转为结构化语义状态：
-    - is_present: 是否检测到人
-    - using_phone: 手机是否与人体区域存在高关联
-    - using_laptop: 是否存在电脑且处于学习工位区域
-    - reading_book: 是否存在书籍并处于有效学习区域
+    利用 YOLO Pose 的 17 个关键点提取：
+    - isPresent: 是否有人
+    - faceVisible: 是否能看到正脸（眼睛、鼻子）
+    - headDown: 是否低头
+    - headTurnedAway: 是否转头
+    - postureStable: 姿态是否稳定
     """
+
+    def __init__(self):
+        # 缓存最后几帧的肩膀中心和鼻子坐标，用于计算平稳度
+        # [[(nose_x, nose_y), (shoulder_cx, shoulder_cy)], ...]
+        self._history_poses = deque(maxlen=15)
 
     def abstract(
         self,
@@ -30,92 +38,99 @@ class StateService:
     ) -> AbstractedState:
         """
         从一帧检测结果中抽象出语义状态
-
-        Args:
-            detections: YOLO 检测结果列表
-            stableDuration: 当前状态持续时长（由时间序列模块提供）
-
-        Returns:
-            结构化的抽象状态
         """
-        isPresent = False
-        usingPhone = False
-        usingLaptop = False
-        readingBook = False
-
-        personBoxes: list[list[float]] = []
-
-        # 第一遍：收集所有检测目标
-        for det in detections:
-            if det.className == "person":
-                isPresent = True
-                personBoxes.append(det.bbox)
-            elif det.className == "cell phone":
-                usingPhone = True
-            elif det.className == "laptop":
-                usingLaptop = True
-            elif det.className == "book":
-                readingBook = True
-
-        # NOTE: 如果检测到手机但没检测到人，不算正在使用手机
-        # 这种情况可能是手机放在桌上但人不在
-        if not isPresent:
-            usingPhone = False
-            usingLaptop = False
-            readingBook = False
-
-        # HACK: 简化版的空间关联判断
-        # MVP 中只做简单的共现判断，后续可加入 IoU 空间关联
-        if usingPhone and personBoxes:
-            usingPhone = self._checkProximity(
-                personBoxes, detections, "cell phone"
+        if not detections:
+            self._history_poses.clear()
+            return AbstractedState(
+                isPresent=False,
+                stableDuration=stableDuration
             )
+
+        # 取置信度最高的 person
+        person = max(detections, key=lambda d: d.confidence)
+        isPresent = True
+        
+        # 默认状态
+        faceVisible = False
+        headDown = False
+        headTurnedAway = False
+        postureStable = False
+
+        if not person.keypoints or len(person.keypoints) < 17:
+            return AbstractedState(
+                isPresent=True, stableDuration=stableDuration
+            )
+
+        kpts = person.keypoints
+        nose = kpts[0]
+        l_eye, r_eye = kpts[1], kpts[2]
+        l_ear, r_ear = kpts[3], kpts[4]
+        l_shoulder, r_shoulder = kpts[5], kpts[6]
+
+        # 判断 faceVisible: 鼻子置信度高，且至少一只眼睛可见
+        if nose[2] > 0.5 and (l_eye[2] > 0.5 or r_eye[2] > 0.5):
+            faceVisible = True
+
+        # 判断 headTurnedAway: 两只耳朵的置信度，或者鼻子与两耳的距离不对称
+        # 如果只有一只耳朵可见，大概率是严重侧头
+        if (l_ear[2] > 0.5 and r_ear[2] < 0.2) or (r_ear[2] > 0.5 and l_ear[2] < 0.2):
+            headTurnedAway = True
+            faceVisible = False # 严重侧头等于看不到正脸
+
+        # 判断 headDown: 鼻子到肩膀中点的距离很短，或者只看到头顶(眼睛/鼻子不可见，只有耳朵或肩膀)
+        shoulder_cy = -1
+        if l_shoulder[2] > 0.5 and r_shoulder[2] > 0.5:
+            shoulder_cx = (l_shoulder[0] + r_shoulder[0]) / 2
+            shoulder_cy = (l_shoulder[1] + r_shoulder[1]) / 2
+            
+            # 记录历史轨迹
+            if nose[2] > 0.5:
+                self._history_poses.append(((nose[0], nose[1]), (shoulder_cx, shoulder_cy)))
+            
+            if nose[2] > 0.5:
+                # 鼻子距离肩膀的垂直距离通常占图像一段比例，如果很小说明低下了头，或者趴着
+                if (shoulder_cy - nose[1]) < 0.05: 
+                    headDown = True
+        
+        # 兜底判断低头：如果没有鼻子但看到了肩膀和耳朵
+        if nose[2] < 0.2 and shoulder_cy > 0:
+            headDown = True
+
+        # 计算姿态稳定性：历史位移方差
+        if len(self._history_poses) >= 5:
+            nose_xs = [p[0][0] for p in self._history_poses]
+            nose_ys = [p[0][1] for p in self._history_poses]
+            sh_xs = [p[1][0] for p in self._history_poses]
+            sh_ys = [p[1][1] for p in self._history_poses]
+            
+            var_nx = self._variance(nose_xs)
+            var_ny = self._variance(nose_ys)
+            var_sx = self._variance(sh_xs)
+            var_sy = self._variance(sh_ys)
+            
+            # 如果位移方差较小，说明没乱动
+            if (var_nx + var_ny + var_sx + var_sy) < 0.01:
+                postureStable = True
+            else:
+                postureStable = False
+        else:
+            # 样本不够，暂认为稳定
+            postureStable = True
 
         return AbstractedState(
             isPresent=isPresent,
-            usingPhone=usingPhone,
-            usingLaptop=usingLaptop,
-            readingBook=readingBook,
+            faceVisible=faceVisible,
+            headDown=headDown,
+            headTurnedAway=headTurnedAway,
+            postureStable=postureStable,
             stableDuration=stableDuration,
         )
 
-    def _checkProximity(
-        self,
-        personBoxes: list[list[float]],
-        detections: list[DetectionItem],
-        targetClass: str,
-    ) -> bool:
-        """
-        检查目标物体是否与人体区域有空间关联
-
-        NOTE: MVP 简化实现 — 判断目标物体中心点是否在人体框的扩展区域内。
-        后续可以用更精确的 IoU 或姿态估计替换。
-        """
-        targetCenters = []
-        for det in detections:
-            if det.className == targetClass:
-                cx = (det.bbox[0] + det.bbox[2]) / 2
-                cy = (det.bbox[1] + det.bbox[3]) / 2
-                targetCenters.append((cx, cy))
-
-        for personBox in personBoxes:
-            # 将人体框扩展 20%，增加容差
-            px1, py1, px2, py2 = personBox
-            pw = px2 - px1
-            ph = py2 - py1
-            expandedBox = [
-                px1 - pw * 0.2,
-                py1 - ph * 0.2,
-                px2 + pw * 0.2,
-                py2 + ph * 0.2,
-            ]
-
-            for cx, cy in targetCenters:
-                if (expandedBox[0] <= cx <= expandedBox[2] and
-                        expandedBox[1] <= cy <= expandedBox[3]):
-                    return True
-
-        return False
+    def _variance(self, values: list[float]) -> float:
+        if not values:
+            return 0.0
+        mean = sum(values) / len(values)
+        return sum((x - mean) ** 2 for x in values) / len(values)
 
 
 # 全局单例

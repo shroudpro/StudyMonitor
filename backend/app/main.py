@@ -165,9 +165,10 @@ async def videoWebsocket(websocket: WebSocket):
                         ),
                         "abstractedState": {
                             "isPresent": abstractedState.isPresent,
-                            "usingPhone": abstractedState.usingPhone,
-                            "usingLaptop": abstractedState.usingLaptop,
-                            "readingBook": abstractedState.readingBook,
+                            "faceVisible": abstractedState.faceVisible,
+                            "headDown": abstractedState.headDown,
+                            "headTurnedAway": abstractedState.headTurnedAway,
+                            "postureStable": abstractedState.postureStable,
                             "stableDuration": round(
                                 abstractedState.stableDuration, 1
                             ),
@@ -179,6 +180,7 @@ async def videoWebsocket(websocket: WebSocket):
                             "className": d.className,
                             "confidence": d.confidence,
                             "bbox": d.bbox,
+                            "keypoints": d.keypoints,
                         }
                         for d in detections
                     ],

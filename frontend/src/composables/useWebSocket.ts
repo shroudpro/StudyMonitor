@@ -16,9 +16,10 @@ export function useWebSocket(url: string) {
     stableDuration: 0,
     abstractedState: {
       isPresent: false,
-      usingPhone: false,
-      usingLaptop: false,
-      readingBook: false,
+      faceVisible: false,
+      headDown: false,
+      headTurnedAway: false,
+      postureStable: false,
       stableDuration: 0,
     },
     timestamp: 0,

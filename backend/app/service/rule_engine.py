@@ -70,33 +70,35 @@ class RuleEngine:
         self, state: AbstractedState
     ) -> tuple[str, float]:
         """
-        内置默认规则 — 按优先级从高到低执行
-
+        内置默认规则 — 基于人体姿态抽象
         规则逻辑：
         1. 没检测到人 → 离开
-        2. 使用手机且持续超过 5 秒 → 分心
-        3. 使用电脑且不用手机 → 专注
-        4. 看书且不用手机 → 专注
-        5. 在场但无学习行为 → 低效
+        2. 人在位但长期转头 -> 分心
+        3. 人在位且长期低头(趴睡) -> 低效
+        4. 姿态不稳定(乱动) -> 低效
+        5. 在场、脸可见且姿态稳定 -> 专注
         """
         if not state.isPresent:
             return STATE_AWAY, 0.9
 
-        if state.usingPhone and state.stableDuration > 5:
-            return STATE_DISTRACTED, 0.85
+        # 如果转头，可能是分心
+        if state.headTurnedAway:
+            return STATE_DISTRACTED, 0.8
+            
+        # 如果长时间低头或趴下，认为是低效
+        if state.headDown:
+            if state.stableDuration > 5:
+                return STATE_LOW_EFFICIENCY, 0.85
+            else:
+                return STATE_UNKNOWN, 0.5
 
-        if state.usingPhone:
-            # 手机使用但未超时，给一个较低置信度的分心
-            return STATE_DISTRACTED, 0.5
+        # 姿态不稳定，频繁乱动
+        if not state.postureStable:
+            return STATE_LOW_EFFICIENCY, 0.7
 
-        if state.usingLaptop and not state.usingPhone:
-            return STATE_FOCUS, 0.8
-
-        if state.readingBook and not state.usingPhone:
-            return STATE_FOCUS, 0.75
-
-        if state.isPresent and not state.usingLaptop and not state.readingBook:
-            return STATE_LOW_EFFICIENCY, 0.6
+        # 能看见正脸，并且姿态稳定，判定为专注
+        if state.faceVisible and state.postureStable:
+            return STATE_FOCUS, 0.85
 
         return STATE_UNKNOWN, 0.3
 
@@ -130,14 +132,15 @@ class RuleEngine:
         匹配单条规则的条件
 
         支持的条件字段：
-        - using_phone, using_laptop, reading_book, is_present: bool
+        - is_present, face_visible, head_down, head_turned_away, posture_stable: bool
         - duration_sec: 支持 ">", "<", ">=" 等比较操作
         """
         fieldMapping = {
-            "using_phone": state.usingPhone,
-            "using_laptop": state.usingLaptop,
-            "reading_book": state.readingBook,
             "is_present": state.isPresent,
+            "face_visible": state.faceVisible,
+            "head_down": state.headDown,
+            "head_turned_away": state.headTurnedAway,
+            "posture_stable": state.postureStable,
         }
 
         for key, expected in condition.items():

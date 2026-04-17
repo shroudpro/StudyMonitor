@@ -7,14 +7,16 @@ export interface DetectionItem {
   className: string
   confidence: number
   bbox: number[] // [x1, y1, x2, y2] 归一化坐标
+  keypoints?: number[][] // [[x,y,conf], ...] 归一化坐标
 }
 
 /** 状态抽象结果 */
 export interface AbstractedState {
   isPresent: boolean
-  usingPhone: boolean
-  usingLaptop: boolean
-  readingBook: boolean
+  faceVisible: boolean
+  headDown: boolean
+  headTurnedAway: boolean
+  postureStable: boolean
   stableDuration: number
 }
 

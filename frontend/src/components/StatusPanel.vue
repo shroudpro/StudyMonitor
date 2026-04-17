@@ -55,24 +55,24 @@ function formatDuration(seconds: number): string {
       </div>
       <div
         class="abstract-item"
-        :class="{ active: state.abstractedState.usingLaptop }"
+        :class="{ active: state.abstractedState.faceVisible }"
       >
-        <span class="abstract-icon">💻</span>
-        <span class="abstract-label">电脑</span>
+        <span class="abstract-icon">👀</span>
+        <span class="abstract-label">脸部可见</span>
       </div>
       <div
         class="abstract-item"
-        :class="{ active: state.abstractedState.usingPhone, warn: state.abstractedState.usingPhone }"
+        :class="{ active: state.abstractedState.headDown || state.abstractedState.headTurnedAway, warn: state.abstractedState.headDown || state.abstractedState.headTurnedAway }"
       >
-        <span class="abstract-icon">📱</span>
-        <span class="abstract-label">手机</span>
+        <span class="abstract-icon">↪️</span>
+        <span class="abstract-label">动作偏移</span>
       </div>
       <div
         class="abstract-item"
-        :class="{ active: state.abstractedState.readingBook }"
+        :class="{ active: state.abstractedState.postureStable }"
       >
-        <span class="abstract-icon">📖</span>
-        <span class="abstract-label">书籍</span>
+        <span class="abstract-icon">🧘</span>
+        <span class="abstract-label">姿态稳定</span>
       </div>
     </div>
   </div>

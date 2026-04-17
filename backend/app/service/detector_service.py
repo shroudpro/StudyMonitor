@@ -99,8 +99,8 @@ class DetectorService:
         inputName = self._session.get_inputs()[0].name
         outputs = self._session.run(None, {inputName: inputTensor})
 
-        # YOLOv8 输出格式: [1, 84, 8400] → 转置为 [8400, 84]
-        # 前 4 列是 cx, cy, w, h；后 80 列是各类别置信度
+        # YOLO11-pose 输出格式: [1, 56, 8400] → 转置为 [8400, 56]
+        # 前 4 列是 cx, cy, w, h；第 5 列是 person 置信度；后 51 列是 17 个关键点 (x,y,conf)
         predictions = outputs[0][0].T
 
         results: list[DetectionItem] = []
@@ -112,15 +112,21 @@ class DetectorService:
 
         for pred in predictions:
             cx, cy, bw, bh = pred[:4]
-            classScores = pred[4:]
-            classId = int(np.argmax(classScores))
-            confidence = float(classScores[classId])
+            confidence = float(pred[4])
 
-            # 只保留目标类别且置信度达标的检测结果
-            if classId not in TARGET_CLASSES:
-                continue
+            # YOLO pose 只检测 person (classId = 0)
             if confidence < YOLO_CONFIDENCE_THRESHOLD:
                 continue
+
+            # 提取 17 个关键点 (x, y, conf)
+            # COCO Keypoints: 0:Nose, 1:L-Eye, 2:R-Eye, 3:L-Ear, 4:R-Ear, 5:L-Shoulder, 6:R-Shoulder...
+            kpts = pred[5:]
+            keypoints = []
+            for j in range(17):
+                kx = kpts[j * 3] / YOLO_INPUT_SIZE
+                ky = kpts[j * 3 + 1] / YOLO_INPUT_SIZE
+                kconf = kpts[j * 3 + 2]
+                keypoints.append([float(kx), float(ky), float(kconf)])
 
             # 转换为 x1, y1, x2, y2（归一化坐标）
             x1 = (cx - bw / 2) / YOLO_INPUT_SIZE
@@ -128,9 +134,13 @@ class DetectorService:
             x2 = (cx + bw / 2) / YOLO_INPUT_SIZE
             y2 = (cy + bh / 2) / YOLO_INPUT_SIZE
 
-            boxes.append([x1, y1, x2 - x1, y2 - y1])
+            boxes.append([float(x1), float(y1), float(x2 - x1), float(y2 - y1)])
             scores.append(confidence)
-            classIds.append(classId)
+            classIds.append(0)
+            # HACK: 我们需要保存 NMS 等价的关键点，先把 keypoints 放进一个临时数组，对应每个 box
+            if not hasattr(self, "_temp_keypoints"):
+                self._temp_keypoints = []
+            self._temp_keypoints.append(keypoints)
 
         # NMS 去重
         if boxes:
@@ -138,18 +148,22 @@ class DetectorService:
                 boxes, scores, YOLO_CONFIDENCE_THRESHOLD, YOLO_NMS_THRESHOLD
             )
             if len(indices) > 0:
-                for i in indices.flatten():
-                    x, y, bw, bh = boxes[i]
+                for idx in indices.flatten():
+                    x, y, bw, bh = boxes[idx]
                     results.append(DetectionItem(
-                        className=TARGET_CLASSES[classIds[i]],
-                        confidence=round(scores[i], 3),
+                        className="person",
+                        confidence=round(scores[idx], 3),
                         bbox=[
                             round(x, 4),
                             round(y, 4),
                             round(x + bw, 4),
                             round(y + bh, 4),
                         ],
+                        keypoints=self._temp_keypoints[idx] if hasattr(self, "_temp_keypoints") else None
                     ))
+
+        if hasattr(self, "_temp_keypoints"):
+            self._temp_keypoints.clear()
 
         return results
 
@@ -164,13 +178,8 @@ class DetectorService:
         h, w = frame.shape[:2]
         annotated = frame.copy()
 
-        # 不同目标类别的显示颜色 (BGR)
-        colorMap = {
-            "person": (0, 230, 118),      # 翡翠绿
-            "cell phone": (82, 82, 255),   # 警报红
-            "laptop": (255, 214, 0),       # 金色
-            "book": (255, 145, 0),         # 琥珀橙
-        }
+        # 仅 person 类别
+        color = (0, 230, 118)
 
         for det in detections:
             x1 = int(det.bbox[0] * w)
@@ -178,22 +187,40 @@ class DetectorService:
             x2 = int(det.bbox[2] * w)
             y2 = int(det.bbox[3] * h)
 
-            color = colorMap.get(det.className, (200, 200, 200))
             cv2.rectangle(annotated, (x1, y1), (x2, y2), color, 2)
 
-            label = f"{det.className} {det.confidence:.2f}"
+            # 绘制置信度
+            label = f"person {det.confidence:.2f}"
             labelSize, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-            cv2.rectangle(
-                annotated,
-                (x1, y1 - labelSize[1] - 6),
-                (x1 + labelSize[0], y1),
-                color,
-                -1,
-            )
-            cv2.putText(
-                annotated, label, (x1, y1 - 4),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1,
-            )
+            cv2.rectangle(annotated, (x1, y1 - labelSize[1] - 6), (x1 + labelSize[0], y1), color, -1)
+            cv2.putText(annotated, label, (x1, y1 - 4), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+
+            # 绘制关键点和骨架
+            if det.keypoints:
+                # 绘制上半身关键点骨架连线
+                skeleton = [
+                    (0, 1), (1, 3), (0, 2), (2, 4),  # 头部
+                    (5, 6), (5, 7), (7, 9), (6, 8), (8, 10), # 肩膀和手臂
+                    (5, 11), (6, 12), (11, 12)  # 躯干
+                ]
+                
+                # 画连线
+                for p1, p2 in skeleton:
+                    if p1 < len(det.keypoints) and p2 < len(det.keypoints):
+                        kp1 = det.keypoints[p1]
+                        kp2 = det.keypoints[p2]
+                        if kp1[2] > 0.5 and kp2[2] > 0.5:
+                            pt1 = (int(kp1[0] * w), int(kp1[1] * h))
+                            pt2 = (int(kp2[0] * w), int(kp2[1] * h))
+                            cv2.line(annotated, pt1, pt2, (255, 145, 0), 2)
+                
+                # 画关键点
+                for i, kp in enumerate(det.keypoints):
+                    if kp[2] > 0.5:
+                        px, py = int(kp[0] * w), int(kp[1] * h)
+                        # 头部的点用不同颜色
+                        pt_color = (0, 0, 255) if i < 5 else (255, 0, 0)
+                        cv2.circle(annotated, (px, py), 4, pt_color, -1)
 
         return annotated
 
