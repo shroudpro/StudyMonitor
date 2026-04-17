@@ -1,0 +1,52 @@
+"""
+ORM 数据模型定义
+
+对应概要设计 2.4 节的三张表：
+- BehaviorLog: 行为日志表
+- BehaviorRule: 规则配置表
+- SemanticLog: 语义解释日志表
+"""
+
+from datetime import datetime
+
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text
+
+from app.database import Base
+
+
+class BehaviorLog(Base):
+    """
+    行为日志表 — 记录每次状态变更
+    """
+    __tablename__ = "behavior_log"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    timestamp = Column(DateTime, default=datetime.now)
+    state = Column(String(20), nullable=False)
+    duration = Column(Integer, default=0)
+
+
+class BehaviorRule(Base):
+    """
+    规则配置表 — 存储用户定义的行为判定规则
+    """
+    __tablename__ = "behavior_rules"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ruleName = Column(String(100), nullable=False)
+    conditionJson = Column(Text, nullable=False)
+    outputState = Column(String(20), nullable=False)
+    enabled = Column(Boolean, default=True)
+    createdAt = Column(DateTime, default=datetime.now)
+
+
+class SemanticLog(Base):
+    """
+    语义解释日志表 — 记录 VLM 生成的状态解释
+    """
+    __tablename__ = "semantic_log"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    timestamp = Column(DateTime, default=datetime.now)
+    state = Column(String(20), nullable=False)
+    explanation = Column(Text, nullable=False)
