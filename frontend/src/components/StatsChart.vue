@@ -166,16 +166,21 @@ onUnmounted(() => {
 
 .stat-card:hover {
   border-color: var(--color-neutral-300);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-1);
 }
 
 .stat-label {
+  font-family: var(--font-artistic);
   font-size: var(--text-xs);
   font-weight: 600;
   text-transform: uppercase;
   color: var(--color-neutral-500);
+  letter-spacing: 0.05em;
 }
 
 .stat-value {
+  font-family: var(--font-data);
   font-size: var(--text-xl);
   font-weight: 600;
   line-height: 1;

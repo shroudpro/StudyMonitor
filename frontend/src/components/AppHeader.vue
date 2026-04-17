@@ -90,8 +90,10 @@ onUnmounted(() => {
 }
 
 .logo-text {
+  font-family: var(--font-artistic);
   font-size: var(--text-lg);
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--color-neutral-900);
 }
 
@@ -129,7 +131,8 @@ onUnmounted(() => {
 }
 
 .header-time {
-  font-size: var(--text-sm);
+  font-family: var(--font-data);
+  font-size: var(--text-base);
   font-weight: 500;
   color: var(--color-neutral-900);
 }

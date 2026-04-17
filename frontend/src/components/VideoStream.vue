@@ -106,7 +106,7 @@ const emit = defineEmits<{
   margin-bottom: var(--space-2);
 }
 
-.font-medium { font-weight: 500; }
+.font-medium { font-family: var(--font-data); font-weight: 500; }
 .tracking-wider { letter-spacing: 0.05em; }
 .ml-1 { margin-left: var(--space-1); }
 .text-neutral-100 { color: var(--color-neutral-100); }
