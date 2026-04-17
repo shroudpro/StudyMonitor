@@ -25,6 +25,23 @@ class BehaviorLog(Base):
     state = Column(String(20), nullable=False)
     duration = Column(Integer, default=0)
 
+class StudySession(Base):
+    """
+    学习会话表 — 记录每次完整学习周期的统计数据
+    """
+    __tablename__ = "study_session"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    sessionId = Column(String(50), nullable=False, unique=True)
+    startTime = Column(DateTime, default=datetime.now)
+    endTime = Column(DateTime)
+    totalDuration = Column(Integer, default=0)
+    focusDuration = Column(Integer, default=0)
+    distractedDuration = Column(Integer, default=0)
+    lowEfficiencyDuration = Column(Integer, default=0)
+    awayDuration = Column(Integer, default=0)
+    distractedCount = Column(Integer, default=0)
+
 
 class BehaviorRule(Base):
     """

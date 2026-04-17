@@ -10,6 +10,10 @@ from collections import Counter
 
 from app.schema.schemas import StatsResponse
 from app.service.timeline_service import timelineService
+from app.database import SessionLocal
+from app.model.models import StudySession
+import uuid
+import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +24,10 @@ class StatsService:
 
     从时间序列模块获取状态历史，计算各类统计指标。
     """
+
+    def __init__(self):
+        self._currentSessionId = None
+        self._sessionStartTime = None
 
     def getStats(self) -> StatsResponse:
         """
@@ -87,6 +95,49 @@ class StatsService:
             stateTimeline=stateTimeline,
         )
 
+
+    def startSession(self):
+        timelineService.startSession()
+        self._currentSessionId = str(uuid.uuid4())
+        self._sessionStartTime = datetime.datetime.now()
+        return {"sessionId": self._currentSessionId}
+
+    def resetSession(self):
+        timelineService.reset()
+        self._currentSessionId = None
+        return {"status": "success"}
+
+    def stopSession(self):
+        if not timelineService.isRunning:
+            return {"status": "error", "message": "No active session"}
+        
+        stats = self.getStats()
+        timelineService.stopSession()
+        
+        # 保存到数据库
+        if self._currentSessionId:
+            db = SessionLocal()
+            try:
+                dbSession = StudySession(
+                    sessionId=self._currentSessionId,
+                    startTime=self._sessionStartTime,
+                    endTime=datetime.datetime.now(),
+                    totalDuration=int(stats.totalDuration),
+                    focusDuration=int(stats.focusDuration),
+                    distractedDuration=int(stats.distractedDuration),
+                    lowEfficiencyDuration=int(stats.lowEfficiencyDuration),
+                    awayDuration=int(stats.awayDuration),
+                    distractedCount=stats.distractedCount
+                )
+                db.add(dbSession)
+                db.commit()
+            except Exception as e:
+                logger.error(f"Save session error: {e}")
+            finally:
+                db.close()
+                self._currentSessionId = None
+        
+        return {"status": "success", "stats": stats.dict()}
 
 # 全局单例
 statsService = StatsService()

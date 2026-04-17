@@ -18,6 +18,8 @@ export interface AbstractedState {
   headTurnedAway: boolean
   postureStable: boolean
   stableDuration: number
+  inactiveDuration: number
+  awayDuration: number
 }
 
 /** 当前行为状态 */

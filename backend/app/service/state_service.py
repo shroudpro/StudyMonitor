@@ -30,6 +30,10 @@ class StateService:
         # 缓存最后几帧的肩膀中心和鼻子坐标，用于计算平稳度
         # [[(nose_x, nose_y), (shoulder_cx, shoulder_cy)], ...]
         self._history_poses = deque(maxlen=15)
+        import time
+        now = time.time()
+        self._inactive_start = now
+        self._away_start = now
 
     def abstract(
         self,
@@ -39,24 +43,32 @@ class StateService:
         """
         从一帧检测结果中抽象出语义状态
         """
+        import time
+        now = time.time()
         if not detections:
             self._history_poses.clear()
+            self._inactive_start = now # 不在位时不统计发呆
             return AbstractedState(
                 isPresent=False,
+                awayDuration=now - self._away_start,
                 stableDuration=stableDuration
             )
 
         # 取置信度最高的 person
         person = max(detections, key=lambda d: d.confidence)
         isPresent = True
+        self._away_start = now
+        awayDuration = 0.0
         
         # 默认状态
         faceVisible = False
         headDown = False
         headTurnedAway = False
         postureStable = False
+        inactiveDuration = 0.0
 
         if not person.keypoints or len(person.keypoints) < 17:
+            self._inactive_start = now
             return AbstractedState(
                 isPresent=True, stableDuration=stableDuration
             )
@@ -96,7 +108,7 @@ class StateService:
         if nose[2] < 0.2 and shoulder_cy > 0:
             headDown = True
 
-        # 计算姿态稳定性：历史位移方差
+        # 计算姿态稳定性与 inactive
         if len(self._history_poses) >= 5:
             nose_xs = [p[0][0] for p in self._history_poses]
             nose_ys = [p[0][1] for p in self._history_poses]
@@ -108,14 +120,19 @@ class StateService:
             var_sx = self._variance(sh_xs)
             var_sy = self._variance(sh_ys)
             
-            # 如果位移方差较小，说明没乱动
+            # 如果位移方差较小，说明没乱动，也没有有效活动
             if (var_nx + var_ny + var_sx + var_sy) < 0.01:
                 postureStable = True
+                inactiveDuration = now - self._inactive_start
             else:
                 postureStable = False
+                self._inactive_start = now
+                inactiveDuration = 0.0
         else:
-            # 样本不够，暂认为稳定
+            # 样本不够，暂认为稳定但刚开始
             postureStable = True
+            self._inactive_start = now
+            inactiveDuration = 0.0
 
         return AbstractedState(
             isPresent=isPresent,
@@ -124,6 +141,8 @@ class StateService:
             headTurnedAway=headTurnedAway,
             postureStable=postureStable,
             stableDuration=stableDuration,
+            inactiveDuration=inactiveDuration,
+            awayDuration=awayDuration,
         )
 
     def _variance(self, values: list[float]) -> float:

@@ -63,7 +63,34 @@ export function useApi() {
     }
   }
 
-  // ─── 统计 ───
+  // ─── 会话与统计 ───
+
+  async function startSession(): Promise<{ sessionId: string } | null> {
+    try {
+      return await request<{ sessionId: string }>('/session/start', { method: 'POST' })
+    } catch (e) {
+      apiError.value = `启动会话失败: ${e}`
+      return null
+    }
+  }
+
+  async function resetSession(): Promise<{ status: string } | null> {
+    try {
+      return await request<{ status: string }>('/session/reset', { method: 'POST' })
+    } catch (e) {
+      apiError.value = `重置会话失败: ${e}`
+      return null
+    }
+  }
+
+  async function stopSession(): Promise<{ status: string, stats?: StatsResponse } | null> {
+    try {
+      return await request<{ status: string, stats?: StatsResponse }>('/session/stop', { method: 'POST' })
+    } catch (e) {
+      apiError.value = `停止会话失败: ${e}`
+      return null
+    }
+  }
 
   async function getStats(): Promise<StatsResponse | null> {
     try {
@@ -139,6 +166,9 @@ export function useApi() {
     apiError,
     startCamera,
     stopCamera,
+    startSession,
+    resetSession,
+    stopSession,
     getStats,
     getRules,
     createRule,

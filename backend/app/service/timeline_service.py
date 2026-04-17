@@ -35,22 +35,32 @@ class TimelineService:
         # 当前状态起始时间
         self._stateStartTime: float = time.time()
         # 监测起始时间
-        self._monitorStartTime: float = time.time()
+        self._monitorStartTime: float = 0.0
         # 状态变更历史（用于统计）
         self._stateHistory: list[dict] = []
+        # 会话运行标志
+        self._isRunning = False
 
     @property
     def currentState(self) -> str:
         return self._currentState
 
     @property
+    def isRunning(self) -> bool:
+        return self._isRunning
+
+    @property
     def stableDuration(self) -> float:
         """当前状态的持续时长（秒）"""
+        if not self._isRunning:
+            return 0.0
         return time.time() - self._stateStartTime
 
     @property
     def totalDuration(self) -> float:
         """总监测时长（秒）"""
+        if not self._isRunning:
+            return 0.0
         return time.time() - self._monitorStartTime
 
     def update(self, rawState: str) -> str:
@@ -67,6 +77,9 @@ class TimelineService:
         Returns:
             平滑后的稳定状态
         """
+        if not self._isRunning:
+            return self._currentState
+
         now = time.time()
         self._window.append((rawState, now))
 
@@ -128,13 +141,35 @@ class TimelineService:
         return history
 
     def reset(self) -> None:
-        """重置所有状态（新一次学习监测）"""
+        """重置所有状态（暂不启动）"""
         self._window.clear()
         self._currentState = "未知"
-        self._stateStartTime = time.time()
-        self._monitorStartTime = time.time()
         self._stateHistory.clear()
         logger.info("时间序列分析已重置")
+
+    def startSession(self) -> None:
+        """开始新的 session"""
+        self.reset()
+        now = time.time()
+        self._stateStartTime = now
+        self._monitorStartTime = now
+        self._isRunning = True
+        logger.info("学习 Session 已开始")
+
+    def stopSession(self) -> None:
+        """停止当前 session"""
+        if self._isRunning:
+            self._isRunning = False
+            # 记录最后一段
+            now = time.time()
+            if self._currentState != "未知":
+                self._stateHistory.append({
+                    "state": self._currentState,
+                    "startTime": self._stateStartTime,
+                    "endTime": now,
+                    "duration": now - self._stateStartTime,
+                })
+            logger.info("学习 Session 已停止")
 
 
 # 全局单例

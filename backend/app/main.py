@@ -169,6 +169,8 @@ async def videoWebsocket(websocket: WebSocket):
                             "headDown": abstractedState.headDown,
                             "headTurnedAway": abstractedState.headTurnedAway,
                             "postureStable": abstractedState.postureStable,
+                            "inactiveDuration": round(abstractedState.inactiveDuration, 1),
+                            "awayDuration": round(abstractedState.awayDuration, 1),
                             "stableDuration": round(
                                 abstractedState.stableDuration, 1
                             ),

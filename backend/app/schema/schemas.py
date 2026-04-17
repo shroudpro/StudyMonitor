@@ -42,6 +42,8 @@ class AbstractedState(BaseModel):
     headTurnedAway: bool = False
     postureStable: bool = False
     stableDuration: float = 0.0
+    inactiveDuration: float = 0.0
+    awayDuration: float = 0.0
 
 class BehaviorState(BaseModel):
     """当前行为状态（前端展示用）"""

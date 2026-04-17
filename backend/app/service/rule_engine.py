@@ -70,37 +70,36 @@ class RuleEngine:
         self, state: AbstractedState
     ) -> tuple[str, float]:
         """
-        内置默认规则 — 基于人体姿态抽象
-        规则逻辑：
-        1. 没检测到人 → 离开
-        2. 人在位但长期转头 -> 分心
-        3. 人在位且长期低头(趴睡) -> 低效
-        4. 姿态不稳定(乱动) -> 低效
-        5. 在场、脸可见且姿态稳定 -> 专注
+        内置默认规则 — 基于人体姿态抽象及优先级重构
+        
+        优先级（按要求重写）：
+        1. 离开：!is_present 且 away_duration > 3
+        2. 分心：head_turned_away 且持续一段时间（或者直接分心）
+        3. 专注：在场且脸可见且未高度偏离且稳定 且 发呆没超过5秒
+        4. 低效：以上都不满足，比如发呆太久、低头太久等兜底
         """
+        
+        # 1. 离开
         if not state.isPresent:
-            return STATE_AWAY, 0.9
-
-        # 如果转头，可能是分心
-        if state.headTurnedAway:
-            return STATE_DISTRACTED, 0.8
-            
-        # 如果长时间低头或趴下，认为是低效
-        if state.headDown:
-            if state.stableDuration > 5:
-                return STATE_LOW_EFFICIENCY, 0.85
+            if state.awayDuration > 3:
+                return STATE_AWAY, 0.9
             else:
-                return STATE_UNKNOWN, 0.5
+                return STATE_UNKNOWN, 0.5 # 还没满足离开时长
 
-        # 姿态不稳定，频繁乱动
-        if not state.postureStable:
-            return STATE_LOW_EFFICIENCY, 0.7
+        # 2. 分心
+        if state.headTurnedAway and state.stableDuration > 5:
+            return STATE_DISTRACTED, 0.85
+        elif state.headTurnedAway:
+            return STATE_DISTRACTED, 0.5
 
-        # 能看见正脸，并且姿态稳定，判定为专注
-        if state.faceVisible and state.postureStable:
+        # 3. 专注
+        # is_present, face_visible, not head_turned_away, posture_stable, inactive_duration < 5
+        if state.isPresent and state.faceVisible and not state.headTurnedAway and state.postureStable and state.inactiveDuration < 5:
             return STATE_FOCUS, 0.85
 
-        return STATE_UNKNOWN, 0.3
+        # 4. 兜底为低效
+        # 这会包含：长时间发呆 (inactiveDuration>=5)，或者是长时间低头等
+        return STATE_LOW_EFFICIENCY, 0.8
 
     def _evaluateCustomRules(
         self, state: AbstractedState
