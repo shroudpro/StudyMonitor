@@ -1,105 +1,138 @@
-# StudyMonitor
+# 🧘 StudyMonitor
 
-一个基于 FastAPI + Vue3 + YOLO11n + Ollama(Qwen) 的智能学习行为监控与分析系统。
-**测试版 v1 核心特性**：纯本地全离线执行、极简桌面美学、自然语言规则解析、基于 VLM 的状态行为解释。
+<p align="center">
+  <img src="https://img.shields.io/badge/Version-测试版%20v1.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Python-3.10%2B-green.svg" alt="Python">
+  <img src="https://img.shields.io/badge/Vue-3.x-brightgreen.svg" alt="Vue">
+  <img src="https://img.shields.io/badge/Local%20AI-Ollama-orange.svg" alt="Ollama">
+  <img src="https://img.shields.io/badge/License-MIT-purple.svg" alt="License">
+</p>
 
-## 📦 技术栈
-
-- **前端**：Vue 3 + Vite + TypeScript (Sleek Focus Design System)
-- **后端**：FastAPI + SQLite + PyDantic
-- **计算机视觉**：OpenCV + YOLO11n-pose (ONNX 格式)
-- **语义理解**：Ollama + Qwen2.5-1.5B 
+**StudyMonitor** 是一个本地优先、隐私安全的智能学习行为监控系统。它结合了轻量级计算机视觉（YOLO Pose）与本地大语言模型（Ollama + Qwen），在完全不依赖云端的情况下，为您提供实时的专注力分析、行为解释及自然语言驱动的规则管理。
 
 ---
 
-## 🚀 快速启动指南
+## ✨ 核心特性
 
-### 1. 环境准备工作
+- 🔒 **隐私安全**：除 Ollama 模型下载外，所有视觉推断与语义解释均在本地完成，视频流绝不上传。
+- 👁️ **实时姿态抽象**：基于 YOLO11n-pose 毫秒级识别低头、侧头、离开等语义动作。
+- 🤖 **VLM 行为解释**：当状态变化时，自动调用本地 Qwen 模型生成人性化的行为反馈。
+- 📝 **自然语言规则**：支持通过口语化指令（如“低头学习超过一分钟再提醒我”）一键生成复杂的判定逻辑。
+- 🎨 **极简设计**：采用现代视觉风格的 UI，减少干扰，让重点回归学习本身。
 
-本项目需要至少两层核心环境：Python 后端环境 以及 Ollama 本地模型服务。
+---
 
-**1.1 安装 Python 依赖**
-建议使用 Conda 或 Venv 创建虚拟环境（要求 Python >= 3.10），以 Conda 为例：
+## 🛠️ 环境依赖
+
+在开始部署前，请确保您的电脑满足以下条件：
+- **操作系统**：Windows / macOS / Linux
+- **硬件**：带有摄像头的设备（用于视觉监控）
+- **软件**：
+  - [Conda](https://www.anaconda.com/) (推荐) 或 Python 3.10+
+  - [Node.js](https://nodejs.org/) (推荐 18.x 或更高)
+  - [Ollama](https://ollama.com/) (用于支持 AI 解释)
+
+---
+
+## 🚀 保姆级部署教程
+
+### 第一步：克隆项目与后端配置
+
+1. **获取代码**：
+   ```bash
+   git clone https://github.com/shroudpro/StudyMonitor.git
+   cd StudyMonitor
+   ```
+
+2. **创建 Python 环境**：
+   ```bash
+   # 创建并激活环境
+   conda create -n study-monitor python=3.11
+   conda activate study-monitor
+
+   # 进入后端目录安装依赖
+   cd backend
+   pip install -r requirements.txt
+   ```
+
+3. **放置视觉模型**：
+   请确保 `backend/models/yolo11n-pose.onnx` 文件存在。如果不存在，请从官方 Release 或 [Ultralytics](https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n-pose.onnx) 下载并改名放入该目录。
+
+### 第二步：安装并配置 Ollama (AI 引擎)
+
+1. **安装 Ollama**：前往 [Ollama.com](https://ollama.com/) 下载并安装。
+2. **下载模型**：
+   打开您的终端（PowerShell 或 CMD），运行以下命令获取轻量级 Qwen 模型：
+   ```bash
+   ollama pull qwen2.5:1.5b
+   ```
+3. **验证**：运行 `ollama list`，确认列表中包含 `qwen2.5:1.5b`。
+4. **(可选) 节省 C 盘空间**：如果您的 C 盘空间紧张，请设置系统环境变量 `OLLAMA_MODELS` 指向其他盘符的文件夹。
+
+### 第三步：前端编译
+
 ```bash
-conda create -n study-monitor python=3.11
-conda activate study-monitor
-
-# 切换到项目下 backend 目录
-cd backend
-# 如果你使用的是 environment.yml，可以直接 conda env update -f environment.yml
-# 或者使用 pip 直接安装：
-pip install fastapi uvicorn[standard] opencv-python-headless onnxruntime sqlalchemy pydantic websockets python-multipart httpx
+cd ../frontend
+npm install
 ```
 
-### 1.2 准备模型与环境验证
+---
 
-本项目高度依赖 Ollama 提供的本地语义解析。请确保按以下步骤执行：
+## 💻 使用指南
 
-**A. 安装与启动 Ollama**
-1. 前往 [Ollama 官网](https://ollama.com/) 下载并安装。
-2. **验证启动状态**：
-   - **方式一（视觉）**：检查电脑右下角系统托盘是否有 Ollama 的图标。
-   - **方式二（浏览器）**：在浏览器访问 [http://localhost:11434](http://localhost:11434)，若显示 "Ollama is running" 则表示服务正常。
-   - **方式三（终端）**：运行 `ollama --version` 检查命令是否可用。
+### 1. 启动服务
+您需要开启两个终端窗口分别运行前后端：
 
-**B. 准备并校验 Qwen 模型**
-1. **拉取模型**：在终端运行 `ollama pull qwen2.5:1.5b`。 
-2. **检查模型是否就绪**：运行 `ollama list`。
-   - **预期结果**：列表中必须包含 `qwen2.5:1.5b`。如果缺失，后续的“状态解释”和“规则解析”将进入降级模板模式。
+*   **后端**：
+    ```bash
+    cd backend
+    conda activate study-monitor
+    python -m app.main
+    ```
+*   **前端**：
+    ```bash
+    cd frontend
+    npm run dev
+    ```
+启动后，在浏览器访问 `http://localhost:3000`。
+
+### 2. 开始监控
+- **权限授予**：点击左侧视窗，允许浏览器调用摄像头。
+- **开始学习**：点击下方的绿色 `开始学习` 按钮，系统将开启一个 Session 并记录数据。
+- **查看解释**：当您从“专注”变为“分心”时，右侧会自动滚动出 AI 生成的实时原因分析。
+
+### 3. 配置自定义规则
+- 点击“行为规则”面板中的 `AI生成` 切换至自然语言模式。
+- 输入示例：“如果我连续转头观望超过10秒，就判定为分心”。
+- 点击 `解析`，确认预览无误后点击 `确认并添加`。
 
 ---
 
-### 2. 运行系统
+## 📜 判定规则指南 (默认参数)
 
-> [!IMPORTANT]
-> **路径注意**：启动后端和前端时，请务必先进入对应的子目录，否则会发生 `ModuleNotFoundError`。
+如果您未设置任何自定义规则，系统将执行以下**双轨制判定标准**：
 
-**步骤 A: 启动后端**
-```bash
-# 1. 进入后端目录 (核心步骤)
-cd backend
-
-# 2. 激活环境
-conda activate study-monitor
-
-# 3. 运行服务 (必须在 backend 目录下运行)
-python -m app.main
-```
-*注：后端默认运行在 http://localhost:8000*
-
-**步骤 B: 启动前端**
-```bash
-# 1. 另开一个窗口，进入前端目录
-cd frontend
-
-# 2. 启动开发服务器
-npm run dev
-```
-
----
-
-## 💡 功能验证与常见问题
-
-### VLM 服务状态检查
-你可以通过以下现象判断 VLM 是否工作正常：
-1. **自动解释**：当你的学习状态改变（如“专注”变为“分心”）后，查看右侧“行为解释”面板。
-   - 显示 **[VLM]** 标签：连接 Ollama 成功，生成了 AI 实时解释。
-   - 显示 **[模板]** 标签：无法连接 Ollama，已自动降级。
-2. **规则解析**：点击“AI生成”规则，输入一段话并解析。
-   - 若返回了 JSON 预览：成功。
-   - 若提示“无法解析”：请检查终端中 Ollama 是否正在运行。
-
----
-
-## 📜 系统默认规则
-
-如果你没有配置任何自定义规则，系统将按以下标准逻辑进行判定：
-
-| 状态 | 判定逻辑 (内置) | 说明 |
+| 状态 | 核心逻辑条件 | 设计初衷 |
 | :--- | :--- | :--- |
-| **离开** | `!isPresent` 且 持续 > 5s | 防抖防误判：检测不到用户在屏幕前超过5秒 |
-| **分心** | `isPresent`, `!headDown`, `headTurnedAway` 且 持续 > 10s | 非低头时的偏头：剔除低头读写，并且允许短暂转头思考 |
-| **专注** | `headDown` 且 持续 < 60s<br> 或 `!headDown`, `!headTurnedAway` 且 持续 < 30s | 双轨制判定：支持长时间低头伏案（60s静止），同时支持看课件等屏幕聚焦（30s静止） |
-| **低效** | 兜底逻辑 | 只打击真正的极限静止发呆。一旦发生活跃打断，则从兜底跳脱 |
+| **专注 (FOCUS)** | **A. 伏案模式**：低头且静止 < 60s<br>**B. 屏幕模式**：抬头看屏且静止 < 30s | 兼容低头读写和看课件两种高价值场景。 |
+| **分心 (DISTRACTED)** | 没在低头，且偏头/转头超过 10s | 允许短暂的转头思考，严厉打击长期走神。 |
+| **离开 (AWAY)** | 完全检测不到人影超过 5s | 防抖防误判，给用户起身的宽限时间。 |
+| **低效 (LOW)** | 超出上述静止门槛 (30s/60s) | 只针对“真正的极端僵直/发呆”进行提醒。 |
 
-*注：自定义规则的优先级高于默认规则。*
+---
+
+## ❓ 常见问题 (FAQ)
+
+**Q: 为什么行为解释显示 [模板] 而不是 [VLM]？**  
+A: 这表示系统无法连接到您的 Ollama 服务。请检查：1. Ollama 客户端是否已启动；2. 是否已执行 `ollama pull qwen2.5:1.5b`。
+
+**Q: 画面显示“找不到摄像头”？**  
+A: 请确保没有其他程序（如微信视频、会议软件）占用了摄像头，并确保后端终端没有报错提示摄像头索引错误。
+
+**Q: 如何迁移模型存放位置？**  
+A: 请设置系统环境变量 `OLLAMA_MODELS` 指向新路径（如 `E:\Models`），然后将旧的 `.ollama` 文件夹内容搬迁过去并重启 Ollama。
+
+---
+
+## 📄 开源协议
+本项目基于 [MIT](LICENSE) 协议开源。
