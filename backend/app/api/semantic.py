@@ -24,7 +24,7 @@ async def explainState(request: SemanticExplainRequest):
 
     使用本地 Ollama VLM/LLM
     """
-    return semanticService.explain(
+    return await semanticService.explain(
         currentState=request.currentState,
         abstractedState=request.abstractedState,
         matchedRule=request.matchedRule,

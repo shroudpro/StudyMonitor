@@ -85,13 +85,13 @@ class StateService:
 
         # 判断 headTurnedAway: 两只耳朵的置信度，或者鼻子与两耳的距离不对称
         # 如果只有一只耳朵可见，大概率是严重侧头
-        if (l_ear[2] > 0.5 and r_ear[2] < 0.2) or (r_ear[2] > 0.5 and l_ear[2] < 0.2):
+        if (l_ear[2] > 0.4 and r_ear[2] < 0.2) or (r_ear[2] > 0.4 and l_ear[2] < 0.2):
             headTurnedAway = True
             faceVisible = False # 严重侧头等于看不到正脸
 
         # 判断 headDown: 鼻子到肩膀中点的距离很短，或者只看到头顶(眼睛/鼻子不可见，只有耳朵或肩膀)
         shoulder_cy = -1
-        if l_shoulder[2] > 0.5 and r_shoulder[2] > 0.5:
+        if l_shoulder[2] > 0.5 and r_shoulder[2] > 0.2:
             shoulder_cx = (l_shoulder[0] + r_shoulder[0]) / 2
             shoulder_cy = (l_shoulder[1] + r_shoulder[1]) / 2
             

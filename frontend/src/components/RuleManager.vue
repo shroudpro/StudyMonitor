@@ -29,6 +29,10 @@ async function loadRules() {
   rules.value = await getRules()
 }
 
+onMounted(() => {
+  loadRules()
+})
+
 async function handleCreate(ruleData: RuleCreateRequest) {
   const result = await createRule(ruleData)
   if (result) {
@@ -106,6 +110,23 @@ onMounted(loadRules)
               <li>规则优先级：自定义规则 > 系统默认。</li>
               <li>避免冲突：描述清晰且不重叠。例如有了"低头5s判定分心"，就不要再写"低头10s判定低效"。</li>
             </ul>
+            <div class="mt-3 border-t pt-2">
+              <div class="font-bold mb-1 text-sm text-primary">⚙️ 手动 JSON 规则参数字典</div>
+              <ul class="text-xs list-disc pl-4 space-y-1 text-gray-600">
+                <li><code>is_present</code>: 布尔值 (是否检测到人)</li>
+                <li><code>face_visible</code>: 布尔值 (是否看到脸)</li>
+                <li><code>head_down</code>: 布尔值 (是否低头)</li>
+                <li><code>head_turned_away</code>: 布尔值 (是否歪头东张西望)</li>
+                <li><code>posture_stable</code>: 布尔值 (姿势是否静止)</li>
+                <li><code>duration_sec</code>: 持续时间(秒)。比较符格式如：<code class="bg-gray-100 p-0.5 rounded">{"duration_sec": {">": 5}}</code></li>
+              </ul>
+              <div class="mt-2 bg-gray-50 p-2 rounded text-xs">
+                <strong>实例：手动添加“严重离开”规则</strong><br/>
+                如果你想配置一个“人不在超过 30 秒判定离开”的规则：<br/>
+                状态选 <code>离开</code>，条件填写：<br/>
+                <code class="block mt-1 text-gray-700 whitespace-pre">{"is_present": false, "duration_sec": {">": 30}}</code>
+              </div>
+            </div>
           </div>
         </div>
       </span>

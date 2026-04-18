@@ -36,16 +36,16 @@ class SemanticService:
     def isAvailable(self) -> bool:
         return self._isAvailable
 
-    def _callOllama(self, prompt: str) -> str:
-        """底层调用 Ollama API"""
+    async def _callOllama(self, prompt: str) -> str:
+        """底层调用 Ollama API (异步版本，防止阻塞 WebSocket 视频流)"""
         payload = {
             "model": MODEL_NAME,
             "prompt": prompt,
             "stream": False
         }
         try:
-            with httpx.Client(timeout=TIMEOUT_SEC) as client:
-                response = client.post(OLLAMA_API_URL, json=payload)
+            async with httpx.AsyncClient(timeout=TIMEOUT_SEC) as client:
+                response = await client.post(OLLAMA_API_URL, json=payload)
                 response.raise_for_status()
                 data = response.json()
                 return data.get("response", "").strip()
@@ -53,7 +53,7 @@ class SemanticService:
             logger.error(f"Ollama 调用失败: {e}")
             raise
 
-    def explain(self, currentState: str, abstractedState: AbstractedState, matchedRule: str | None, context: str = "") -> SemanticExplainResponse:
+    async def explain(self, currentState: str, abstractedState: AbstractedState, matchedRule: str | None, context: str = "") -> SemanticExplainResponse:
         """
         生成当前状态的语义解释
         """
@@ -66,36 +66,38 @@ class SemanticService:
         }
         template_text = templates.get(currentState, f"当前状态为「{currentState}」。")
 
-        prompt = f"""你是一个智能学习行为分析系统的解释助手。请根据下方的判定规则和实时传感器数据，用一句简洁的中文向用户解释当前为什么被判定为该状态。
+        prompt = f"""你是一个友好的学习行为分析助手。请根据下方的判定状态和传感器数据，用不超过30个字的一句话，向用户解释为什么现在是这个状态。
 
-系统当前的默认判定规则逻辑（供你参考）：
-1. 离开 (AWAY)：不在位 (isPresent=false) 超过 5 秒。
-2. 分心 (DISTRACTED)：在位、没有低头且转头 (headTurnedAway=true) 超过 10 秒。
-3. 专注 (FOCUS)：
-   - 伏案专注：低头 (headDown=true) 且 静止发呆时间 (inactiveDuration) <= 60 秒。
-   - 屏幕专注：抬头 (headDown=false)、没转头 且 静止发呆时间内 (inactiveDuration) <= 30 秒。
-4. 低效 (LOW)：当上述条件都不满足时触发。通常是因为：
-   - 抬头静止(发呆)超过 30 秒。
-   - 低头静止(睡着/僵直)超过 60 秒。
+当前判定状态：【{currentState}】
+(匹配到的规则：{matchedRule or '系统默认规则'})
 
-当前判定状态：{currentState}
-匹配到的规则：{matchedRule or '默认规则'}
+当前的实时传感器数据：
+- 是否检测到人：{"是" if abstractedState.isPresent else "否"}
+- 是否低头：{"是" if abstractedState.headDown else "否"}
+- 是否东张西望(转头)：{"是" if abstractedState.headTurnedAway else "否"}
+- 身体是否静止发呆：{"是" if abstractedState.postureStable else "否"}
+- 静止发呆持续时间：{abstractedState.inactiveDuration:.1f} 秒
+- 彻底离开画面时间：{abstractedState.awayDuration:.1f} 秒
 
-传感器数据：
-- 是否在场 (isPresent): {abstractedState.isPresent}
-- 脸部可见 (faceVisible): {abstractedState.faceVisible}
-- 头部转向 (headTurnedAway): {abstractedState.headTurnedAway}
-- 是否低头 (headDown): {abstractedState.headDown}
-- 姿态是否稳定 (postureStable): {abstractedState.postureStable}
-- 发呆/静止时长 (inactiveDuration): {abstractedState.inactiveDuration}秒
+这里有一些系统解释逻辑的参考：
+- 如果状态是“离开”，通常是因为检测不到人。
+- 如果状态是“分心”，通常是因为东张西望(转头)。
+- 如果状态是“低效”，通常是因为静止发呆的时间太长了（没低头时超过30秒，低头时超过60秒）。
+- 如果状态是“专注”，代表目前既没有离开，也没有乱看，且发呆时间在正常范围内。
 
 要求：
-1. 严格按照上述逻辑解释。例如，如果是“低效”，请说明是因为静止时间超过了 30/60 秒。
-2. 回答要通俗、简洁、友好，禁止虚构传感器数据中没体现的行为。
-3. 纯文本，不要超过 50 字，禁止 Markdown。"""
+1. 你的回答必须是一句通顺的中文，不要有任何换行，不要输出 Markdown。
+2. 解释必须严格贴合上方给出的“实时传感器数据”。如果不贴合，你会受到惩罚。
+
+参考范例：
+范例1：当前判定状态为【分心】，是否转头为“是”。回答：“系统检测到您正在东张西望，注意力发生偏移。”
+范例2：当前判定状态为【低效】，静止发呆持续时间为“35秒”。回答：“您已经发呆超过 30 秒了，请迅速调整回学习状态。”
+范例3：当前判定状态为【专注】，是否低头为“是”。回答：“您正在低头伏案学习，请保持当前的专注力。”
+
+请输出你的回答："""
 
         try:
-            explanation = self._callOllama(prompt)
+            explanation = await self._callOllama(prompt)
             # 清理可能的 markdown 等
             explanation = explanation.replace("```", "").replace("\n", "").strip()
             return SemanticExplainResponse(

@@ -22,6 +22,48 @@
 
 ---
 
+## 📂 项目结构与功能注释
+
+```text
+StudyMonitor/
+├── backend/                # 后端核心 (Python + FastAPI)
+│   ├── app/                # 核心业务逻辑程序
+│   │   ├── api/            # 路由层：定义 RESTful 接口 (处理 HTTP 规则、状态及语义请求)
+│   │   ├── model/          # 模型层：包含 SQLAlchemy 数据库持久化的 ORM 表结构定义
+│   │   ├── schema/         # 协议层：Pydantic 验证模型，用于前后端强类型的参数校验
+│   │   ├── service/        # 业务逻辑层（分析流程的大脑）
+│   │   │   ├── camera_service.py     # 获取摄像头视频流并推帧
+│   │   │   ├── detector_service.py   # 对接 YOLOv11n-pose 预训练模型执行关键点推理提取
+│   │   │   ├── state_service.py      # 将关键坐标数组抽象为语义布尔词汇(低头/转头等组合)
+│   │   │   ├── rule_engine.py        # 判定引擎核心：加载内存规则并执行匹配，得出瞬时动作
+│   │   │   ├── timeline_service.py   # 降噪重塑层：对状态时间线进行防抖降噪，收集并生成学习周期报表
+│   │   │   ├── semantic_service.py   # VLM 本地引擎：调用 Qwen 解释原因及转义自然语言
+│   │   │   └── stats_service.py      # 分析统计模块：统计每轮 Session 的专注率
+│   │   ├── config.py       # 环境变量及内置项目标量配置中心
+│   │   ├── database.py     # SqLite 引擎的异步并发配置定义，处理数据库挂载
+│   │   └── main.py         # 启动与挂载核心：拉起服务、监听 Websocket 管道循环推流
+│   ├── data/               # SQLite 文件落盘物理隔离存放路径 (.db)
+│   ├── models/             # 预训练视觉驱动模型安全目录 (.onnx)
+│   ├── environment.yml     # 此项目 Conda 源自动安装与环境声明配置
+│   └── requirements.txt    # 为轻量化使用者提供的原生 Pip 依赖安装清单
+├── frontend/               # 前端核心 (Vue3 + Vite + TS)
+│   ├── src/
+│   │   ├── components/     # 大屏 UI 模块化组件
+│   │   │   ├── RuleManager.vue     # 自然语言+JSON双模表单驱动的规则管理展示面版
+│   │   │   ├── SemanticPanel.vue   # UI时间线：捕获 AI 回调，自动展示大局观释义
+│   │   │   ├── StatusPanel.vue     # 主动提示面板：状态指示灯及流程启停控制中枢
+│   │   │   └── SessionStats.vue    # 分析报表：处理周期结束后数据落地的打分可视化计算
+│   │   ├── composables/    # Reactive 状态处理机（组合钩子）
+│   │   │   └── useApi.ts           # Axios与WebSocket集中接口总线：统筹前后端双向的数据推拉
+│   │   ├── types/          # Typescript 接口蓝图定义库
+│   │   ├── App.vue         # 容器骨架：调配核心四大组件的基础栅格与路由
+│   │   └── style.css       # 全局样式总控：内嵌了团队约束的 UI Token(色系、缝隙、投影)
+│   └── vite.config.ts      # VITE 工具链热力刷新挂载代理等编译器工程参数
+└── README.md               # 也就是这篇，用于梳理全周期的快速入门文档
+```
+
+---
+
 ## 🛠️ 环境依赖
 
 在开始部署前，请确保您的电脑满足以下条件：
@@ -102,9 +144,26 @@ npm install
 - **查看解释**：当您从“专注”变为“分心”时，右侧会自动滚动出 AI 生成的实时原因分析。
 
 ### 3. 配置自定义规则
+系统支持两种配置自定义逻辑的方式（优先级高于内置规则）：
+
+**A. 自然语言生成 (VLM 解析)**：
 - 点击“行为规则”面板中的 `AI生成` 切换至自然语言模式。
-- 输入示例：“如果我连续转头观望超过10秒，就判定为分心”。
+- 输入示例：“*如果我连续转头观望超过10秒，就判定为分心*”。
 - 点击 `解析`，确认预览无误后点击 `确认并添加`。
+
+**B. 手动 JSON 高级模式**：
+如果你熟悉系统底层逻辑，可以直接输入传感器参数 JSON 定义规则对象：
+- **可选状态变量**：
+  - `is_present`: 布尔值 (检测到人)
+  - `face_visible`: 布尔值 (看到正脸)
+  - `head_down`: 布尔值 (低头)
+  - `head_turned_away`: 布尔值 (歪头)
+  - `posture_stable`: 布尔值 (身体静止)
+  - `duration_sec`: 时间比较对象（例如 `{"duration_sec": {">": 30}}`）
+- **手动定义示例**：
+  假设你要建立一个名为 **"严格离开"** 的判定逻辑，只要人不在画面超过 30 秒就警告，你可以填写：
+  - **触发状态**：选择 `离开`
+  - **配置 JSON**：`{"is_present": false, "duration_sec": {">": 30}}`
 
 ---
 
