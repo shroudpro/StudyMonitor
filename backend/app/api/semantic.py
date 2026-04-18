@@ -9,6 +9,8 @@ from fastapi import APIRouter
 from app.schema.schemas import (
     SemanticExplainRequest,
     SemanticExplainResponse,
+    NlRuleParseRequest,
+    NlRuleParseResponse,
 )
 from app.service.semantic_service import semanticService
 
@@ -20,19 +22,19 @@ async def explainState(request: SemanticExplainRequest):
     """
     生成当前状态的语义解释
 
-    NOTE: MVP 阶段返回预设模板，后续替换为 VLM 实时生成
+    使用本地 Ollama VLM/LLM
     """
     return semanticService.explain(
-        state=request.state,
+        currentState=request.currentState,
+        abstractedState=request.abstractedState,
+        matchedRule=request.matchedRule,
         context=request.context or "",
     )
 
 
-@router.post("/rules/parse")
-async def parseNaturalLanguageRule(ruleText: str = ""):
+@router.post("/rules/parse", response_model=NlRuleParseResponse)
+async def parseNaturalLanguageRule(request: NlRuleParseRequest):
     """
     将自然语言规则解析为结构化规则
-
-    NOTE: MVP 阶段返回不可用提示，后续接入 VLM
     """
-    return semanticService.parseRule(ruleText)
+    return semanticService.parseRule(request.ruleText)

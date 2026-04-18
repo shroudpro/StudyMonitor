@@ -37,5 +37,5 @@ def initDb():
     """
     初始化数据库表结构（首次运行时自动创建）
     """
-    from app.model.models import BehaviorLog, BehaviorRule, SemanticLog  # noqa: F401
+    from app.model.models import BehaviorLog, BehaviorRule, SemanticLog, StudySession, NlRuleParseLog  # noqa: F401
     Base.metadata.create_all(bind=engine)

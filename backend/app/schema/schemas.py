@@ -99,11 +99,13 @@ class RuleResponse(BaseModel):
         from_attributes = True
 
 
-# ─── 语义解释相关（预留） ───
+# ─── 语义解释相关 ───
 
 class SemanticExplainRequest(BaseModel):
     """语义解释请求"""
-    state: str
+    currentState: str
+    abstractedState: AbstractedState
+    matchedRule: Optional[str] = None
     context: Optional[str] = None
 
 
@@ -111,6 +113,26 @@ class SemanticExplainResponse(BaseModel):
     """语义解释响应"""
     state: str
     explanation: str
+    source: str = "vlm"
+
+
+class NlRuleParseRequest(BaseModel):
+    """自然语言规则解析请求"""
+    ruleText: str
+
+
+class ParsedRuleItem(BaseModel):
+    ruleName: str
+    conditionJson: str
+    outputState: str
+
+
+class NlRuleParseResponse(BaseModel):
+    """自然语言规则解析响应"""
+    success: bool
+    parsedRule: Optional[ParsedRuleItem] = None
+    error: Optional[str] = None
+    rawText: str
 
 
 # ─── WebSocket 消息 ───

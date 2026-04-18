@@ -108,8 +108,9 @@ class StateService:
         if nose[2] < 0.2 and shoulder_cy > 0:
             headDown = True
 
-        # 计算姿态稳定性与 inactive
-        if len(self._history_poses) >= 5:
+        # 计算姿态稳定性与 inactive (判断是否在发呆/乱动)
+        # 将阈值从 0.01 收紧到 0.0005，使得微小的晃动也会被识别为活动
+        if len(self._history_poses) >= 10:
             nose_xs = [p[0][0] for p in self._history_poses]
             nose_ys = [p[0][1] for p in self._history_poses]
             sh_xs = [p[1][0] for p in self._history_poses]
@@ -120,8 +121,10 @@ class StateService:
             var_sx = self._variance(sh_xs)
             var_sy = self._variance(sh_ys)
             
-            # 如果位移方差较小，说明没乱动，也没有有效活动
-            if (var_nx + var_ny + var_sx + var_sy) < 0.01:
+            total_variance = var_nx + var_ny + var_sx + var_sy
+            
+            # 阈值收紧至 0.0005 (原为 0.01)
+            if total_variance < 0.0005:
                 postureStable = True
                 inactiveDuration = now - self._inactive_start
             else:
@@ -129,8 +132,8 @@ class StateService:
                 self._inactive_start = now
                 inactiveDuration = 0.0
         else:
-            # 样本不够，暂认为稳定但刚开始
-            postureStable = True
+            # 样本不够时，默认认为当前处于活动/不稳定状态，避免刚开始就判定为静止
+            postureStable = False
             self._inactive_start = now
             inactiveDuration = 0.0
 

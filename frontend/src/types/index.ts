@@ -83,10 +83,32 @@ export interface CameraStatus {
   message: string
 }
 
+/** 语义解释请求 */
+export interface SemanticExplainRequest {
+  currentState: string
+  abstractedState: AbstractedState
+  matchedRule?: string
+  context?: string
+}
+
 /** 语义解释响应 */
 export interface SemanticExplainResponse {
   state: string
   explanation: string
+  source: string
+}
+
+export interface ParsedRuleItem {
+  ruleName: string
+  conditionJson: string
+  outputState: string
+}
+
+export interface NlRuleParseResponse {
+  success: boolean
+  parsedRule?: ParsedRuleItem
+  error?: string
+  rawText: string
 }
 
 /** 学习状态常量 — 与后端对齐 */

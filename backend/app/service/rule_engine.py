@@ -72,33 +72,37 @@ class RuleEngine:
         """
         内置默认规则 — 基于人体姿态抽象及优先级重构
         
-        优先级（按要求重写）：
-        1. 离开：!is_present 且 away_duration > 3
-        2. 分心：head_turned_away 且持续一段时间（或者直接分心）
-        3. 专注：在场且脸可见且未高度偏离且稳定 且 发呆没超过5秒
-        4. 低效：以上都不满足，比如发呆太久、低头太久等兜底
+        优先级：
+        1. 离开：not is_present 且 away_duration > 5.0
+        2. 分心：is_present 且 head_turned_away 且 not head_down 且 stable_duration > 10.0
+        3. 专注：双轨判定 (伏案 60s 或 屏幕 30s)
+        4. 低效：兜底
         """
         
         # 1. 离开
         if not state.isPresent:
-            if state.awayDuration > 3:
+            if state.awayDuration > 5.0:
                 return STATE_AWAY, 0.9
             else:
                 return STATE_UNKNOWN, 0.5 # 还没满足离开时长
 
         # 2. 分心
-        if state.headTurnedAway and state.stableDuration > 5:
+        if state.headTurnedAway and not state.headDown and state.stableDuration > 10.0:
             return STATE_DISTRACTED, 0.85
-        elif state.headTurnedAway:
+        elif state.headTurnedAway and not state.headDown:
             return STATE_DISTRACTED, 0.5
 
-        # 3. 专注
-        # is_present, face_visible, not head_turned_away, posture_stable, inactive_duration < 5
-        if state.isPresent and state.faceVisible and not state.headTurnedAway and state.postureStable and state.inactiveDuration < 5:
+        # 3. 专注 (双轨判定)
+        # A. 伏案专注: 允许 60s 静止
+        if state.headDown and state.inactiveDuration <= 60.0:
+            return STATE_FOCUS, 0.85
+            
+        # B. 屏幕专注: 允许 30s 静止
+        if not state.headDown and not state.headTurnedAway and state.inactiveDuration <= 30.0:
             return STATE_FOCUS, 0.85
 
         # 4. 兜底为低效
-        # 这会包含：长时间发呆 (inactiveDuration>=5)，或者是长时间低头等
+        # 这会落入：死盯着屏幕>30s不动，或伏案>60s不动等极端情况
         return STATE_LOW_EFFICIENCY, 0.8
 
     def _evaluateCustomRules(

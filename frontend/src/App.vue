@@ -135,7 +135,7 @@ onUnmounted(() => {
         </div>
       </div>
       <StatusPanel :state="latestState" />
-      <SemanticPanel :current-state="latestState.state" />
+      <SemanticPanel :current-state="latestState" />
       <RuleManager />
     </div>
 

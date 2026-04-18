@@ -64,6 +64,21 @@ class SemanticLog(Base):
     __tablename__ = "semantic_log"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    sessionId = Column(String(50), nullable=True)
     timestamp = Column(DateTime, default=datetime.now)
     state = Column(String(20), nullable=False)
     explanation = Column(Text, nullable=False)
+    source = Column(String(20), default="template")
+
+
+class NlRuleParseLog(Base):
+    """
+    自然语言规则解析日志表
+    """
+    __tablename__ = "nl_rule_parse_log"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    timestamp = Column(DateTime, default=datetime.now)
+    inputText = Column(Text, nullable=False)
+    parsedJson = Column(Text, nullable=True)
+    success = Column(Boolean, default=False)

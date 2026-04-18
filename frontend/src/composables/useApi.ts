@@ -11,6 +11,8 @@ import type {
   RuleCreateRequest,
   CameraStatus,
   SemanticExplainResponse,
+  SemanticExplainRequest,
+  NlRuleParseResponse,
 } from '@/types'
 
 const API_BASE = '/api'
@@ -149,15 +151,30 @@ export function useApi() {
 
   // ─── 语义解释 ───
 
-  async function getExplanation(state: string): Promise<SemanticExplainResponse | null> {
+  async function getExplanation(requestData: SemanticExplainRequest): Promise<SemanticExplainResponse | null> {
     try {
       return await request<SemanticExplainResponse>('/semantic/explain', {
         method: 'POST',
-        body: JSON.stringify({ state }),
+        body: JSON.stringify(requestData),
       })
     } catch (e) {
       apiError.value = `获取解释失败: ${e}`
       return null
+    }
+  }
+
+  async function parseNlRule(ruleText: string): Promise<NlRuleParseResponse | null> {
+    loading.value = true
+    try {
+      return await request<NlRuleParseResponse>('/semantic/rules/parse', {
+        method: 'POST',
+        body: JSON.stringify({ ruleText }),
+      })
+    } catch (e) {
+      apiError.value = `解析规则失败: ${e}`
+      return null
+    } finally {
+      loading.value = false
     }
   }
 
@@ -175,5 +192,6 @@ export function useApi() {
     deleteRule,
     toggleRule,
     getExplanation,
+    parseNlRule,
   }
 }
