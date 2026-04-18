@@ -112,7 +112,7 @@ class SemanticService:
                 source="template"
             )
 
-    def parseRule(self, ruleText: str) -> dict:
+    async def parseRule(self, ruleText: str) -> dict:
         """
         将自然语言规则解析为结构化规则
         """
@@ -138,11 +138,12 @@ class SemanticService:
 """
 
         try:
-            result_str = self._callOllama(prompt)
-            # 尝试修复可能包裹的 ```json
-            if result_str.startswith("```"):
-                result_str = "\n".join(result_str.split("\n")[1:-1])
-            result_str = result_str.strip()
+            import re
+            result_str = await self._callOllama(prompt)
+            # 使用正则提取包裹的 JSON 以防模型输出多余解释废话
+            match = re.search(r'\{.*\}', result_str, re.DOTALL)
+            if match:
+                result_str = match.group(0)
             
             parsed = json.loads(result_str)
             return {

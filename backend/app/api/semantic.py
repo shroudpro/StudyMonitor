@@ -37,4 +37,4 @@ async def parseNaturalLanguageRule(request: NlRuleParseRequest):
     """
     将自然语言规则解析为结构化规则
     """
-    return semanticService.parseRule(request.ruleText)
+    return await semanticService.parseRule(request.ruleText)
